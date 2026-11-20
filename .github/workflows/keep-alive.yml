@@ -1,0 +1,18 @@
+name: Keep demo awake
+
+# The free Render instance sleeps after 15 minutes without traffic. Ping it on
+# working days, about 07:00-20:00 Vienna time, so visitors rarely wait for a
+# cold start. Outside these hours the console shows "waking up" instead.
+on:
+  schedule:
+    - cron: "*/10 6-18 * * 1-5"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: curl -sf --max-time 90 "${{ vars.API_URL }}/health" || echo "API still waking up"

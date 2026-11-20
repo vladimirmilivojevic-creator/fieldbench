@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.devdata
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.coverage
+results
+docs
+e2e
+site
+tests

@@ -1,0 +1,33 @@
+# docker compose up            -> API on :8000, web console on :5500
+# docker compose run campaign  -> full test campaign, results in ./results
+services:
+  api:
+    build: .
+    image: fieldbench
+    ports:
+      - "8000:8000"
+    environment:
+      CORS_ORIGINS: "http://localhost:5500"
+    volumes:
+      - bench-data:/data
+
+  site:
+    image: nginx:1.27-alpine
+    ports:
+      - "5500:80"
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+
+  campaign:
+    image: fieldbench
+    build: .
+    profiles: ["campaign"]
+    user: root
+    command: ["fieldbench", "run", "--release", "1.4.0", "--results", "/results"]
+    volumes:
+      - ./results:/results
+
+volumes:
+  bench-data:

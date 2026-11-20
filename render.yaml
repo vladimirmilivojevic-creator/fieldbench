@@ -1,0 +1,23 @@
+# Render Blueprint: the bench API (free plan, Frankfurt).
+# The web console itself is a static site on GitHub Pages.
+services:
+  - type: web
+    name: fieldbench-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - fieldbench/**
+        - spec/**
+        - samples/**
+        - procedures/**
+        - Dockerfile
+        - pyproject.toml
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://vladimirmilivojevic-creator.github.io,http://localhost:5500
