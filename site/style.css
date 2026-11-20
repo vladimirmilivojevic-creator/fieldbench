@@ -76,7 +76,7 @@ tbody tr.selected { background: #e8f1ea; }
 .swatch.drop { background: var(--drop); }
 .charts { display: grid; gap: 8px; }
 .charts.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.chart-box { position: relative; height: 120px; }
+.chart-box { position: relative; height: 135px; }
 .charts.two .chart-box { height: 280px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .stat { background: var(--bg); border-radius: 9px; padding: 8px 12px; }

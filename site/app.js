@@ -107,7 +107,13 @@ async function runCampaign() {
     $("#run-info").textContent = `Release ${run.release}: ${run.passed} passed, ${run.failed} failed`;
     showDownloads(run);
     await loadIssues();
-    showDetail(run.results.find((r) => !r.passed) || run.results.find((r) => r.id === "TP-GUI-10"));
+    // open the most telling result: a failure under fault injection, else the GNSS dropout test
+    const withFault = (r) => procedures.find((p) => p.id === r.id).faults.length > 0;
+    showDetail(
+      run.results.find((r) => !r.passed && withFault(r)) ||
+        run.results.find((r) => !r.passed) ||
+        run.results.find((r) => r.id === "TP-GUI-10"),
+    );
   } catch (error) {
     $("#run-info").textContent = `Run failed: ${error.message}`;
   } finally {
@@ -178,11 +184,15 @@ async function showDetail(result) {
           animation: false,
           maintainAspectRatio: false,
           scales: {
-            x: { type: "linear", min: 0, max: series.t[series.t.length - 1], title: { display: name === "CrossTrackError", text: "time [s]" } },
+            x: { type: "linear", min: 0, max: Math.round(series.t[series.t.length - 1]), title: { display: name === "CrossTrackError", text: "time [s]" } },
             // fixed axis width so the stacked charts line up
-            y: { ticks: { maxTicksLimit: 4 }, title: { display: true, text: name, font: { size: 11 } }, afterFit: (scale) => { scale.width = 110; } },
+            y: { ticks: { maxTicksLimit: 4 }, afterFit: (scale) => { scale.width = 56; } },
           },
-          plugins: { legend: { display: false }, shading: { spans } },
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: name, align: "start", font: { size: 12, weight: "600" }, padding: { top: 0, bottom: 2 } },
+            shading: { spans },
+          },
         },
         plugins: [shading],
       }),
