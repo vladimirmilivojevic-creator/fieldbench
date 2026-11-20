@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FieldBench - CAN / ISOBUS test bench</title>
+  <meta name="description" content="Spec-based tests against simulated tractor and guidance ECUs: fault injection, Vector log analysis, GNSS cross-track error.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f5135'/><path d='M7 22h18M9 22V12h6l3 5h5v5' stroke='%23f2c14e' stroke-width='2.4' fill='none'/></svg>">
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">FieldBench</div>
+    <h1>CAN / ISOBUS test bench for precision-farming systems</h1>
+    <p class="lead">Simulated tractor and guidance ECUs on a virtual CAN bus. Test procedures come from a YAML system
+      spec and run with pytest: cycle times, timeouts, signal ranges and fault injection. Failures become tracked
+      issues with log excerpts.</p>
+    <div class="links">
+      <a class="btn light" href="https://github.com/vladimirmilivojevic-creator/fieldbench">Code on GitHub</a>
+      <a class="btn ghost" href="ci/report_1.3.0.html">Latest CI report (1.3.0)</a>
+      <a class="btn ghost" href="ci/report_1.4.0.html">Latest CI report (1.4.0)</a>
+      <a class="btn ghost" id="docs-link" href="#">API docs</a>
+    </div>
+    <div class="status" id="api-status"><span class="dot"></span><span class="text">Checking the bench server...</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card" id="run">
+    <div class="section-head">
+      <h2>1. Run a test campaign</h2>
+      <p class="muted">Release 1.3.0 is a release candidate with three seeded defects. Release 1.4.0 contains the fixes.
+        Run 1.3.0 first, then 1.4.0, and watch the issues go from <b>open</b> to <b>fix verified</b>.</p>
+    </div>
+    <div class="controls">
+      <div class="segmented" role="radiogroup" aria-label="Software release">
+        <label><input type="radio" name="release" value="1.3.0" checked><span>1.3.0 <small>release candidate</small></span></label>
+        <label><input type="radio" name="release" value="1.4.0"><span>1.4.0 <small>fix release</small></span></label>
+      </div>
+      <button class="btn primary" id="run-btn" disabled>Run all procedures</button>
+      <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+      <span class="muted" id="run-info"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="procedures">
+        <thead><tr><th>Procedure</th><th>Title</th><th>Requirement</th><th>Result</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="downloads" class="downloads hidden"></div>
+  </section>
+
+  <section class="card hidden" id="detail">
+    <div class="section-head">
+      <h2 id="detail-title">Procedure</h2>
+      <p class="muted" id="detail-sub"></p>
+    </div>
+    <div class="table-wrap"><table id="checks"><thead><tr><th>Check</th><th>Expected</th><th>Measured</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+    <p class="legend"><span class="swatch fault"></span>fault window <span class="swatch drop"></span>message dropout</p>
+    <div id="charts" class="charts"></div>
+  </section>
+
+  <section class="card" id="issues">
+    <div class="section-head row">
+      <div>
+        <h2>2. Issue tracker</h2>
+        <p class="muted">One issue per failed check, with steps to reproduce and a decoded ASC excerpt. A pass on a newer release verifies the fix.</p>
+      </div>
+      <button class="btn small" id="reset-btn">Reset demo</button>
+    </div>
+    <div class="table-wrap">
+      <table id="issue-table">
+        <thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Found in</th><th>Verified in</th></tr></thead>
+        <tbody><tr><td colspan="6" class="muted">No issues yet. Run release 1.3.0.</td></tr></tbody>
+      </table>
+    </div>
+    <pre id="issue-report" class="report hidden"></pre>
+  </section>
+
+  <section class="card" id="guidance">
+    <div class="section-head">
+      <h2>3. Guidance check on a real GNSS track</h2>
+      <p class="muted" id="guidance-sub">Cross-track error of a recorded NMEA track against its AB line.</p>
+    </div>
+    <div class="stats" id="guidance-stats"></div>
+    <div class="charts two">
+      <div class="chart-box"><canvas id="track-chart"></canvas></div>
+      <div class="chart-box"><canvas id="xte-chart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card" id="analyze">
+    <div class="section-head">
+      <h2>4. Analyse a Vector log</h2>
+      <p class="muted">Upload an ASC or BLF log (max 5 MB, decoded with the FieldBench DBC): frame statistics,
+        error frames and dropouts. Download one from a run above to try it.</p>
+    </div>
+    <form id="upload-form" class="controls">
+      <input type="file" id="log-file" accept=".asc,.blf" required>
+      <button class="btn primary" type="submit">Analyse</button>
+    </form>
+    <div id="analyze-out"></div>
+  </section>
+</main>
+
+<footer class="wrap muted">
+  FieldBench by Vladimir Milivojevic &middot; Python, python-can, cantools, pytest, pandas &middot;
+  The API runs on a free server that sleeps when idle; the first request can take up to a minute.
+</footer>
+</body>
+</html>
