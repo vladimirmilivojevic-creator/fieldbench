@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FieldBench test report - release {{ summary.release }}</title>
+<style>
+  :root { --ok: #2e7d32; --bad: #c62828; --muted: #5f6b66; --line: #dde3e0; --bg: #f6f8f7; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1d2421; margin: 0; background: #fff; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 10px; border-bottom: 2px solid var(--line); padding-bottom: 4px; }
+  .muted { color: var(--muted); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .card b { display: block; font-size: 22px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--bg); font-weight: 600; }
+  .pass { color: var(--ok); font-weight: 700; }
+  .fail { color: var(--bad); font-weight: 700; }
+  details { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 6px 12px; }
+  summary { cursor: pointer; font-weight: 600; }
+  img { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-top: 8px; }
+  code { background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+  .wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>FieldBench test report</h1>
+  <div class="muted">{{ spec.system }} &middot; software release <b>{{ summary.release }}</b> &middot; {{ summary.started }}</div>
+
+  <div class="cards">
+    <div class="card"><span class="muted">Procedures</span><b>{{ summary.results|length }}</b></div>
+    <div class="card"><span class="muted">Passed</span><b class="pass">{{ summary.passed }}</b></div>
+    <div class="card"><span class="muted">Failed</span><b class="{{ 'fail' if summary.failed else 'pass' }}">{{ summary.failed }}</b></div>
+    <div class="card"><span class="muted">Open issues</span><b>{{ summary.issues|selectattr('status', 'equalto', 'open')|list|length }}</b></div>
+  </div>
+
+  <h2>Procedures</h2>
+  <div class="wrap">
+  <table>
+    <tr><th>ID</th><th>Title</th><th>Requirement</th><th>Checks</th><th>Result</th></tr>
+    {% for r in summary.results %}
+    <tr>
+      <td><a href="#{{ r.procedure.id }}">{{ r.procedure.id }}</a></td>
+      <td>{{ r.procedure.title }}</td>
+      <td>{{ r.procedure.requirement }}</td>
+      <td>{{ r.checks|length - r.failed_checks()|length }}/{{ r.checks|length }}</td>
+      <td class="{{ 'pass' if r.passed else 'fail' }}">{{ 'PASS' if r.passed else 'FAIL' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  <h2>Issues</h2>
+  {% if summary.issues %}
+  <div class="wrap">
+  <table>
+    <tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Found in</th><th>Verified in</th></tr>
+    {% for i in summary.issues %}
+    <tr>
+      <td><a href="issues/{{ i.id }}.md">{{ i.id }}</a></td>
+      <td>{{ i.title }}</td>
+      <td>{{ i.severity }}</td>
+      <td class="{{ 'fail' if i.status == 'open' else 'pass' }}">{{ i.status }}</td>
+      <td>{{ i.found_in }}</td>
+      <td>{{ i.verified_in or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="muted">No issues.</p>{% endif %}
+
+  <h2>Details</h2>
+  {% for r in summary.results %}
+  <details id="{{ r.procedure.id }}" {% if not r.passed %}open{% endif %}>
+    <summary>{{ r.procedure.id }} &middot; {{ r.procedure.title }} &middot;
+      <span class="{{ 'pass' if r.passed else 'fail' }}">{{ 'PASS' if r.passed else 'FAIL' }}</span></summary>
+    <p class="muted">{{ r.procedure.requirement }}: {{ spec.requirements[r.procedure.requirement].text }}</p>
+    {% if r.procedure.faults %}<p>Faults:
+      {% for f in r.procedure.faults %}<code>{{ f.type }}{% if f.message %} {{ f.message }}{% endif %}{% if f.ecu %} {{ f.ecu }}{% endif %} @ {{ f.at_s }} s for {{ f.duration_s }} s</code> {% endfor %}</p>{% endif %}
+    <div class="wrap">
+    <table>
+      <tr><th>Check</th><th>Expected</th><th>Measured</th><th>Result</th></tr>
+      {% for c in r.checks %}
+      <tr><td>{{ c.name }}</td><td>{{ c.expected }}</td><td>{{ c.measured }}</td>
+        <td class="{{ 'pass' if c.passed else 'fail' }}">{{ 'PASS' if c.passed else 'FAIL' }}</td></tr>
+      {% endfor %}
+    </table>
+    </div>
+    {% if r.files.blf %}<p class="muted">Logs: <a href="logs/{{ r.files.blf|basename }}">BLF</a> &middot;
+      <a href="logs/{{ r.files.asc|basename }}">ASC</a></p>{% endif %}
+    {% if plots[r.procedure.id] %}<img alt="signals for {{ r.procedure.id }}" src="data:image/png;base64,{{ plots[r.procedure.id] }}">{% endif %}
+  </details>
+  {% endfor %}
+
+  <p class="muted">Generated by FieldBench. Orange = fault window, red = message dropout.</p>
+</main>
+</body>
+</html>
