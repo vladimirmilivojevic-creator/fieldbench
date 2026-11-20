@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldbench"
+version = "1.0.0"
+description = "CAN / ISOBUS test bench for precision-farming systems"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Vladimir Milivojevic" }]
+requires-python = ">=3.12"
+dependencies = [
+    "python-can>=4.5",
+    "cantools>=40",
+    "pyyaml>=6",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "openpyxl>=3.1",
+    "jinja2>=3.1",
+    "pyserial>=3.5",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "pytest>=8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest-cov>=5", "httpx>=0.27", "ruff>=0.6"]
+e2e = ["pytest-playwright>=0.5"]
+
+[project.scripts]
+fieldbench = "fieldbench.cli:main"
+
+[tool.setuptools]
+packages = ["fieldbench"]
+
+[tool.setuptools.package-data]
+fieldbench = ["dbc/*.dbc", "templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+# Unit tests run with `pytest --cov`; the gate below applies to that run only,
+# not to `pytest procedures` (the system test campaign).
+[tool.coverage.run]
+source = ["fieldbench"]
+omit = ["fieldbench/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

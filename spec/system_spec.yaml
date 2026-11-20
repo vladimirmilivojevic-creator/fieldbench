@@ -1,0 +1,161 @@
+# FieldBench system specification
+#
+# Requirements and test procedures for the simulated tractor + auto-guidance
+# system. The test procedures below are turned into pytest test cases by
+# procedures/test_procedures.py, so adding a procedure here adds a test.
+
+system: Tractor ECU + GNSS receiver + auto-guidance steering controller (simulated)
+bus:
+  name: ISOBUS
+  bitrate: 250000
+
+# Transmission requirements per message (from the communication spec, not from
+# the DBC: the DBC describes what the ECUs do, this file says what they must do).
+messages:
+  EEC1:           {cycle_ms: 20,   tolerance_pct: 10, timeout_ms: 100}
+  WBSD:           {cycle_ms: 100,  tolerance_pct: 10, timeout_ms: 300}
+  RHS:            {cycle_ms: 100,  tolerance_pct: 10, timeout_ms: 300}
+  GNSS_POSITION:  {cycle_ms: 100,  tolerance_pct: 10, timeout_ms: 300}
+  GNSS_COG_SOG:   {cycle_ms: 250,  tolerance_pct: 10, timeout_ms: 750}
+  GUIDANCE_STATUS: {cycle_ms: 100, tolerance_pct: 10, timeout_ms: 300}
+  DM1:            {cycle_ms: 1000, tolerance_pct: 10, timeout_ms: 3000}
+
+# Valid physical ranges. Values outside are a defect (e.g. a "not available"
+# raw value leaking out as a number).
+signals:
+  EngineSpeed:       {min: 0,    max: 2600,  unit: rpm}
+  WheelBasedSpeed:   {min: 0,    max: 16.7,  unit: m/s}
+  RearHitchPosition: {min: 0,    max: 100,   unit: "%"}
+  Latitude:          {min: -90,  max: 90,    unit: deg}
+  Longitude:         {min: -180, max: 180,   unit: deg}
+  CrossTrackError:   {min: -0.5, max: 0.5,   unit: m}
+
+requirements:
+  REQ-COM-001: {text: "All messages are sent with their specified cycle time (+/- tolerance).", safety: false}
+  REQ-COM-002: {text: "No message is missing for longer than its timeout in normal operation.", safety: false}
+  REQ-SIG-001: {text: "All signals stay inside their specified physical range.", safety: false}
+  REQ-GUI-001: {text: "Auto-steering engages only after an operator request while GNSS and wheel speed are valid.", safety: true}
+  REQ-GUI-010: {text: "Auto-steering disengages within 500 ms when the GNSS position is lost.", safety: true}
+  REQ-GUI-011: {text: "A GNSS loss raises DM1 SPN 584 FMI 9 (abnormal update rate) within 1 s.", safety: false}
+  REQ-GUI-012: {text: "After a disengagement, steering re-engages only on a new operator request.", safety: true}
+  REQ-GUI-020: {text: "Auto-steering disengages within 500 ms when wheel-based speed is missing for more than 300 ms.", safety: true}
+  REQ-GUI-021: {text: "A single lost wheel-speed frame does not disengage auto-steering.", safety: false}
+  REQ-BUS-001: {text: "The system tolerates a burst of bus errors without losing any message for longer than its timeout.", safety: false}
+
+# Driving scenarios for the plant model (the "field" the simulated ECUs see).
+scenarios:
+  field_pass:
+    duration_s: 14
+    engine_rpm: 1900
+    speed_kmh: 9
+    origin: {lat: 48.1725, lon: 14.5113}   # field near St. Valentin, Lower Austria
+    heading_deg: 72
+    operator_engage_s: 2.0
+    hitch_lower_s: 1.5
+    hitch_raise_s: 12.0                    # headland: implement raised
+
+# Guidance accuracy classes for the offline cross-track error check.
+guidance:
+  min_speed_mps: 0.5          # ignore standstill fixes
+  max_heading_dev_deg: 20     # ignore headland turns
+  classes:
+    RTK:  {xte_p95_m: 0.025}
+    DGPS: {xte_p95_m: 0.30}
+    GPS:  {xte_p95_m: 1.50}
+
+procedures:
+  - id: TP-COM-01
+    title: Cycle times in a nominal field pass
+    requirement: REQ-COM-001
+    scenario: field_pass
+    checks:
+      - {type: cycle_times}
+
+  - id: TP-COM-02
+    title: No message timeouts in a nominal field pass
+    requirement: REQ-COM-002
+    scenario: field_pass
+    checks:
+      - {type: timeouts}
+
+  - id: TP-SIG-01
+    title: Signal ranges over a full pass including the headland raise
+    requirement: REQ-SIG-001
+    scenario: field_pass
+    checks:
+      - {type: signal_ranges}
+
+  - id: TP-GUI-01
+    title: Steering engages after the operator request
+    requirement: REQ-GUI-001
+    scenario: field_pass
+    checks:
+      - {type: holds, signal: SteeringEngaged, equals: 0, from_s: 0.0, to_s: 1.9}
+      - {type: reaction, signal: SteeringEngaged, equals: 1, after_s: 2.0, within_ms: 300}
+
+  - id: TP-GUI-10
+    title: GNSS dropout disengages steering
+    requirement: REQ-GUI-010
+    scenario: field_pass
+    faults:
+      - {type: gnss_dropout, at_s: 6.0, duration_s: 2.0}
+    checks:
+      - {type: reaction, signal: SteeringEngaged, equals: 0, after_s: 6.0, within_ms: 500}
+      - {type: reaction, signal: ExitReason, equals: 2, after_s: 6.0, within_ms: 500}
+
+  - id: TP-GUI-11
+    title: GNSS dropout raises DM1 SPN 584 FMI 9
+    requirement: REQ-GUI-011
+    scenario: field_pass
+    faults:
+      - {type: gnss_dropout, at_s: 6.0, duration_s: 2.0}
+    checks:
+      - {type: dtc_active, spn: 584, fmi: 9, after_s: 6.0, within_ms: 1000}
+
+  - id: TP-GUI-12
+    title: No automatic re-engage after the GNSS signal returns
+    requirement: REQ-GUI-012
+    scenario: field_pass
+    faults:
+      - {type: gnss_dropout, at_s: 6.0, duration_s: 2.0}
+    checks:
+      - {type: holds, signal: SteeringEngaged, equals: 0, from_s: 6.5, to_s: 14.0}
+
+  - id: TP-GUI-20
+    title: Lost wheel-speed messages disengage steering
+    requirement: REQ-GUI-020
+    scenario: field_pass
+    faults:
+      - {type: drop, message: WBSD, at_s: 5.0, duration_s: 0.6}
+    checks:
+      - {type: reaction, signal: SteeringEngaged, equals: 0, after_s: 5.0, within_ms: 500}
+      - {type: reaction, signal: ExitReason, equals: 3, after_s: 5.0, within_ms: 500}
+
+  - id: TP-GUI-21
+    title: One lost wheel-speed frame is tolerated
+    requirement: REQ-GUI-021
+    scenario: field_pass
+    faults:
+      - {type: drop, message: WBSD, at_s: 5.0, duration_s: 0.1}
+    checks:
+      - {type: holds, signal: SteeringEngaged, equals: 1, from_s: 2.5, to_s: 11.5}
+
+  - id: TP-BUS-01
+    title: Bus error burst does not cause message timeouts
+    requirement: REQ-BUS-001
+    scenario: field_pass
+    faults:
+      - {type: bus_errors, at_s: 4.0, duration_s: 2.0, rate_per_s: 100}
+    checks:
+      - {type: timeouts}
+      - {type: error_frames, min_count: 50}
+      - {type: holds, signal: SteeringEngaged, equals: 1, from_s: 2.5, to_s: 11.5}
+
+  - id: TP-BUS-02
+    title: Tractor ECU bus-off disengages steering (speed signal lost)
+    requirement: REQ-GUI-020
+    scenario: field_pass
+    faults:
+      - {type: bus_off, ecu: TECU, at_s: 7.0, duration_s: 1.0}
+    checks:
+      - {type: reaction, signal: SteeringEngaged, equals: 0, after_s: 7.0, within_ms: 500}

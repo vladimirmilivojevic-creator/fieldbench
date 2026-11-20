@@ -1,0 +1,94 @@
+VERSION ""
+
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	BA_DEF_DEF_
+
+BS_:
+
+BU_: ENGINE TECU GNSS GUIDANCE
+
+
+BO_ 2364539904 EEC1: 8 ENGINE
+ SG_ ActualEnginePercentTorque : 16|8@1+ (1,-125) [-125|125] "%" GUIDANCE
+ SG_ EngineSpeed : 24|16@1+ (0.125,0) [0|8031.875] "rpm" GUIDANCE
+
+BO_ 2365475056 WBSD: 8 TECU
+ SG_ WheelBasedSpeed : 0|16@1+ (0.001,0) [0|64.255] "m/s" GUIDANCE
+ SG_ WheelBasedDistance : 16|32@1+ (0.001,0) [0|4211081.215] "m" GUIDANCE
+ SG_ MachineDirection : 56|2@1+ (1,0) [0|3] "" GUIDANCE
+
+BO_ 2365474288 RHS: 8 TECU
+ SG_ RearHitchPosition : 0|8@1+ (0.4,0) [0|100] "%" GUIDANCE
+ SG_ RearHitchInWork : 8|2@1+ (1,0) [0|3] "" GUIDANCE
+
+BO_ 2314731804 GNSS_POSITION: 8 GNSS
+ SG_ Latitude : 0|32@1- (1E-007,0) [-90|90] "deg" GUIDANCE
+ SG_ Longitude : 32|32@1- (1E-007,0) [-180|180] "deg" GUIDANCE
+
+BO_ 2314732060 GNSS_COG_SOG: 8 GNSS
+ SG_ SID : 0|8@1+ (1,0) [0|255] "" GUIDANCE
+ SG_ CogReference : 8|2@1+ (1,0) [0|3] "" GUIDANCE
+ SG_ CourseOverGround : 16|16@1+ (0.0001,0) [0|6.2831] "rad" GUIDANCE
+ SG_ SpeedOverGround : 32|16@1+ (0.01,0) [0|655.32] "m/s" GUIDANCE
+
+BO_ 2360213267 GUIDANCE_STATUS: 8 GUIDANCE
+ SG_ SteeringEngaged : 0|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ SteeringReadiness : 2|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ ExitReason : 8|6@1+ (1,0) [0|63] "" Vector__XXX
+ SG_ CrossTrackError : 16|16@1- (0.001,0) [-32.768|32.767] "m" Vector__XXX
+
+BO_ 2566834707 DM1: 8 GUIDANCE
+ SG_ ProtectLamp : 0|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ AmberWarningLamp : 2|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ RedStopLamp : 4|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MalfunctionLamp : 6|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ SpnLow : 16|16@1+ (1,0) [0|65535] "" Vector__XXX
+ SG_ Fmi : 32|5@1+ (1,0) [0|31] "" Vector__XXX
+ SG_ SpnHigh : 37|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ OccurrenceCount : 48|7@1+ (1,0) [0|126] "" Vector__XXX
+
+
+CM_ BU_ ENGINE "Engine controller, source address 0x00";
+CM_ BU_ TECU "Tractor ECU (ISO 11783-9), source address 0xF0";
+CM_ BU_ GNSS "GNSS receiver, source address 0x1C";
+CM_ BU_ GUIDANCE "Auto-guidance steering controller, source address 0x13";
+CM_ BO_ 2364539904 "Electronic Engine Controller 1 - J1939 PGN 61444 (0xF004)";
+CM_ SG_ 2364539904 ActualEnginePercentTorque "SPN 513";
+CM_ SG_ 2364539904 EngineSpeed "SPN 190";
+CM_ BO_ 2365475056 "Wheel-based Speed and Distance - ISO 11783-7 PGN 65096 (0xFE48)";
+CM_ SG_ 2365475056 WheelBasedSpeed "SPN 1862";
+CM_ SG_ 2365475056 WheelBasedDistance "SPN 1863";
+CM_ SG_ 2365475056 MachineDirection "SPN 1864";
+CM_ BO_ 2365474288 "Primary or Rear Hitch Status - ISO 11783-7 PGN 65093 (0xFE45)";
+CM_ SG_ 2365474288 RearHitchPosition "SPN 1873. Raw 251-255 are reserved / not available";
+CM_ SG_ 2365474288 RearHitchInWork "SPN 1874";
+CM_ BO_ 2314731804 "Position, Rapid Update - NMEA 2000 PGN 129025 (0x1F801)";
+CM_ BO_ 2314732060 "COG and SOG, Rapid Update - NMEA 2000 PGN 129026 (0x1F802)";
+CM_ BO_ 2360213267 "Guidance status - simplified layout modelled on ISO 11783-7 Guidance Machine Status, PGN 44288 (0xAD00), broadcast";
+CM_ SG_ 2360213267 CrossTrackError "Signed distance to the AB line, positive = right of the line";
+CM_ BO_ 2566834707 "Active Diagnostic Trouble Codes - J1939-73 DM1, PGN 65226 (0xFECA), single DTC";
+CM_ SG_ 2566834707 SpnLow "Lower 16 bits of the SPN (conversion method 4)";
+CM_ SG_ 2566834707 SpnHigh "Upper 3 bits of the SPN";
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+BA_ "GenMsgCycleTime" BO_ 2364539904 20;
+BA_ "GenMsgCycleTime" BO_ 2365475056 100;
+BA_ "GenMsgCycleTime" BO_ 2365474288 100;
+BA_ "GenMsgCycleTime" BO_ 2314731804 100;
+BA_ "GenMsgCycleTime" BO_ 2314732060 250;
+BA_ "GenMsgCycleTime" BO_ 2360213267 100;
+BA_ "GenMsgCycleTime" BO_ 2566834707 1000;
+
+VAL_ 2365475056 MachineDirection 0 "Reverse" 1 "Forward" 2 "Error" 3 "Not available" ;
+VAL_ 2365474288 RearHitchInWork 0 "Out of work" 1 "In work" 2 "Error" 3 "Not available" ;
+VAL_ 2360213267 SteeringEngaged 0 "Disengaged" 1 "Engaged" 2 "Error" 3 "Not available" ;
+VAL_ 2360213267 SteeringReadiness 0 "Not ready" 1 "Ready" 2 "Error" 3 "Not available" ;
+VAL_ 2360213267 ExitReason 0 "None" 1 "Operator" 2 "GNSS lost" 3 "Speed signal lost" 4 "Speed out of range" ;
+VAL_ 2566834707 AmberWarningLamp 0 "Off" 1 "On" 2 "Error" 3 "Not available" ;
